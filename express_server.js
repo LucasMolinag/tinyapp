@@ -9,7 +9,17 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 }
 
-function generateRandomString() {}
+function generateRandomString() {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let randomString = '';
+
+  for (let i = 0; i < 6; i++) {
+    const randomIndex = Math.floor(Math.random() * characters.length);
+    randomString += characters.charAt(randomIndex);
+  }
+
+  return randomString;
+}
 
 app.use(express.urlencoded({ extended: true }));
 
@@ -23,8 +33,13 @@ app.get("/urls", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  console.log(req.body); // Log the POST request body to the console
-  res.send("Ok"); // Respond with 'Ok' (we will replace this)
+  const longURL = req.body.longURL;
+  const shortURL = generateRandomString();
+  console.log(req.body, shortURL); // Log the POST request body to the console
+  res.redirect(`/u/${shortURL}`); // Respond with 'Ok' (we will replace this)
+
+  urlDatabase[shortURL] = longURL;
+
 });
 
 app.get("/hello", (req, res) => {
@@ -38,6 +53,11 @@ app.get("/urls/new", (req, res) => {
 app.get("/urls/:id", (req, res) => {
   const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id] };
   res.render("urls_show", templateVars);
+});
+
+app.get("/u/:id", (req, res) => {
+  const longURL = urlDatabase[req.params.id];
+  res.redirect(longURL);
 });
 
 app.listen(PORT, () => {
