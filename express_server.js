@@ -55,6 +55,14 @@ app.post("/urls/:id/update", (req, res) => {
   res.redirect(`/urls`); 
 })
 
+app.post("/login", (req, res) => {
+  const username = req.body;
+
+  res.cookie("loggedInUser", username)
+
+  res.redirect(`urls`);
+})
+
 app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });

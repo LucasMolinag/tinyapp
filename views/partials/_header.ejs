@@ -16,6 +16,12 @@
       <div class="navbar-nav">
         <a class="nav-item nav-link" href="/urls">My URLs</a>
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
+        <div class="d-flex justify-content-right">
+          <form method="POST" action="/login" class="ml-auto">
+            <input type="text" class="form-control" id="Login" name="Login" placeholder="Username"required>
+        </div>
+        <button type="submit" class="btn btn-secondary">Log In</button>
+      </form>
       </div>
     </div>
   </nav>
