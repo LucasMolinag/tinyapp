@@ -42,7 +42,7 @@ app.post("/urls", (req, res) => {
   const longURL = req.body.longURL;
   const shortURL = generateRandomString();
   console.log(req.body, shortURL); // Log the POST request body to the console
-  res.redirect(`/u/${shortURL}`);
+  res.redirect(`/urls/${shortURL}`);
 
   urlDatabase[shortURL] = longURL;
 });
@@ -62,9 +62,15 @@ app.post("/urls/:id/update", (req, res) => {
 })
 
 app.post("/login", (req, res) => {
-  const username = req.body.Login;
+  const username = req.body.login;
 
   res.cookie("username", username)
+
+  res.redirect(`/urls`);
+})
+
+app.post("/logout", (req, res) => {
+  res.clearCookie("username")
 
   res.redirect(`/urls`);
 })
