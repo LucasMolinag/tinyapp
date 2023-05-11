@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/LucasMolinag/tinyapp#readme",
   "dependencies": {
+    "ejs": "^3.1.9",
     "express": "^4.18.2"
   }
 }
