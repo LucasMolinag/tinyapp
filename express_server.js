@@ -1,5 +1,6 @@
 const express = require("express");
 const cookieParser = require("cookie-parser");
+const bcrypt = require("bcryptjs");
 const app = express();
 const PORT = 8080;
 
@@ -44,11 +45,10 @@ function sniffer(user) {  // Sniff existing user email addresses to check if the
 }
 
 function doorman(user) {  // Match entered credentials agains existing user credentials
-  for (const eUser in users) {
-    if (user.email === users[eUser].email) {
-      if (user.password === users[eUser].password){
-        return users[eUser];
-      }
+  for (const userId in users) {
+    const existingUser = users[userId];
+    if (user.email === existingUser.email && bcrypt.compareSync(user.password, existingUser.password)) {
+      return existingUser;
     }
   }
   return false;
@@ -112,12 +112,12 @@ app.get("/register", (req, res) => { // Render account creation page
 app.post("/register", (req,res) => {  // Register new user - evoke sniffer() to catch existing emails
   let id = generateRandomString();
   let email = req.body.email;
-  let password = req.body.password;
+  let hashedPassword = bcrypt.hashSync(req.body.password, 10);
 
   let user = {
     id: id,
     email: email,
-    password: password
+    password: hashedPassword
   }
 
   if(sniffer(user) === true) {
@@ -204,11 +204,11 @@ app.post("/login", (req, res) => {  // Login command - evoke doorman to check cr
   
   if(foundUser === false) {
     res.status(403).send("<h3>User not found</h3>")
-  } else if (urlsForUser(foundUser)) { // Check if the user has associated URLs
+  } else if (bcrypt.compareSync(user.password, foundUser.password)) { // Check if the user has associated URLs
     res.cookie("user_id", foundUser.id);
     res.redirect("/urls"); // Redirect to the "/urls" route
   } else {
-    res.send("<h3>You don't have any URLs yet.</h3>");
+    res.send("<h3>Incorrect password.</h3>");
   }
 })
 
