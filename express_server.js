@@ -79,7 +79,6 @@ app.use(express.urlencoded({ extended: true }));
 
 // Render the urls_index view
 app.get("/urls", (req, res) => {
-  console.log("HERE", users);
   const user = users[req.session["user_id"]];
   if (user) {
     let result = urlsForUser(user);
@@ -242,7 +241,6 @@ app.post("/login", (req, res) => {
   };
 
   const foundUser = doorman(user);
-  console.log("TEST2", foundUser);
   if (!foundUser) {
     res.status(403).send("<h3>Incorrect Details</h3>");
   } else {
