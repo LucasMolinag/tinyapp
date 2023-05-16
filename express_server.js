@@ -26,7 +26,7 @@ const urlDatabase = {
 };
 
 // Check if a user already exists in the users database
-const sniffer = function(user) {
+const doubleCatcher = function(user) {
   for (const eUser in users) {
     if (user.email === users[eUser].email) {
       return true;
@@ -46,7 +46,7 @@ const doorman = function(user) {
   return null;
 };
 
-// Searches for URLs owned by certain user
+// Search for URLs owned by certain user
 const urlsForUser = function(user) {
   let result = {};
   for (const URL in urlDatabase) {
@@ -85,7 +85,7 @@ app.get("/urls", (req, res) => {
     let templateVars = {urls: result, user: user,};
     res.render("urls_index", templateVars);
   } else {
-    res.send("<h3>You need to log in to see your tiny URLs!</h3>");
+    res.status(401).send("<h3>You need to log in to see your tiny URLs!</h3>");
   }
 });
 
@@ -111,19 +111,19 @@ app.get("/login", (req, res) => {
   }
 });
 
-// URL creation page - render a page to generate the randomly generated shortened URL on submission
+// URL creation page - Render a page to generate the randomly generated shortened URL on submission
 app.get("/urls/new", (req, res) => {
   const user = users[req.session["user_id"]];
   const templateVars = { user };
 
   if (!user) {
-    res.send("<h3>You need to be logged in to create now URLs!</h3>");
+    res.status(401).send("<h3>You need to be logged in to create now URLs!</h3>");
   } else {
     res.render("urls_new", templateVars);
   }
 });
 
-// URL details page - render a page with each URLs information and allows for editing of the longURL - redirects to /urls
+// URL details page - Render a page with each URLs information and allows for editing of the longURL - redirects to /urls
 app.get("/urls/:id", (req, res) => {
   const user = users[req.session["user_id"]];
   const id = req.params.id;
@@ -136,21 +136,21 @@ app.get("/urls/:id", (req, res) => {
     };
     res.render("urls_show", templateVars);
   } else if (!user) {
-    res.send("<h3>You're not logged in!</h3>");
+    res.status(401).send("<h3>You're not logged in!</h3>");
   } else if (!urlDatabase[id]) {
-    res.send("<h3>This URL does not exist!</h3>");
+    res.status(404).send("<h3>This URL does not exist!</h3>");
   } else {
-    res.send("<h3>You cannot access another user's URL!</h3>");
+    res.status(401).send("<h3>You cannot access another user's URL!</h3>");
   }
 });
 
-// Retrieve the longURL associated with the shortURL entered and redirects to the longURL site
+// Retrieve the longURL associated with the shortURL entered - Redirect to the longURL site
 app.get("/u/:id", (req, res) => {
   const id = req.params.id;
 
   // Catch instances where the URL in the database does not lead to a valid website
   if (!urlDatabase[id]) {
-    res.send("<h3>This is not a valid URL</h3>");
+    res.status(404).send("<h3>This is not a valid URL</h3>");
     return;
   }
   const longURL = urlDatabase[id].longURL;
@@ -162,7 +162,7 @@ app.get("/u/:id", (req, res) => {
   }
 });
 
-// Register new user - evoke sniffer() to catch existing emails
+// Register new user - Evoke doubleCatcher() to catch existing emails
 app.post("/register", (req,res) => {
   let id = generateRandomString();
   let email = req.body.email;
@@ -174,7 +174,7 @@ app.post("/register", (req,res) => {
     password: hashedPassword
   };
 
-  if (sniffer(user) === true) {
+  if (doubleCatcher(user) === true) {
     res.status(400).send("<h3>Email already used</h3>");
   } else {
 
@@ -184,14 +184,14 @@ app.post("/register", (req,res) => {
   }
 });
 
-// Post command - Create new entry with generated short URL ID - redirects to /urls
+// Create new entry with generated short URL ID - Redirect to /urls
 app.post("/urls", (req, res) => {
   const user = users[req.session["user_id"]];
   const longURL = req.body.longURL;
   const shortURL = generateRandomString();
 
   if (!user) {
-    res.send("<h3>You need to be logged in to create tiny URLs</h3>");
+    res.status(401).send("<h3>You need to be logged in to create tiny URLs</h3>");
   } else {
     res.redirect(`/urls/${shortURL}`,);
   }
@@ -199,26 +199,26 @@ app.post("/urls", (req, res) => {
   urlDatabase[shortURL] = { longURL: longURL, userID: user.id };
 });
 
-// Delete command - redirect back to /urls
+// Delete command - Redirect back to /urls
 app.post("/urls/:id/delete", (req, res) => {
   const user = users[req.session["user_id"]];
   const id = req.params.id;
   if (!user) {
-    res.send("<h3>You're not logged in!</h3>");
+    res.status(401).send("<h3>You're not logged in!</h3>");
   } else if (!urlDatabase[id]) {
-    res.send("<h3>This URL does not exist!</h3>");
+    res.status(404).send("<h3>This URL does not exist!</h3>");
   } else {
     delete urlDatabase[req.params.id];
     res.redirect(`/urls`);
   }
 });
 
-// Update command - swap longURL for the input and redirect to /urls
+// Update command - Swap longURL for the input - redirect back to /urls
 app.post("/urls/:id/update", (req, res) => {
   const user = users[req.session["user_id"]];
 
   if (!user) {
-    res.send("<h3>You're not logged in!</h3>");
+    res.status(401).send("<h3>You're not logged in!</h3>");
     return;
   }
 
@@ -226,14 +226,14 @@ app.post("/urls/:id/update", (req, res) => {
   const newLongURL = req.body.longURL;
   
   if (!urlDatabase[id]) {
-    res.send("<h3>This URL does not exist!</h3>");
+    res.status(404).send("<h3>This URL does not exist!</h3>");
   } else {
     urlDatabase[id].longURL = newLongURL;
     res.redirect(`/urls`);
   }
 });
 
-// Login command - evoke doorman to check credentiuals and capture username in a cookie if user exists
+// Login command - Evoke doorman to check credentials and capture username in a cookie if user exists
 app.post("/login", (req, res) => {
   const user = {
     email: req.body.email,
@@ -242,16 +242,14 @@ app.post("/login", (req, res) => {
 
   const foundUser = doorman(user);
   if (!foundUser) {
-    res.status(403).send("<h3>Incorrect Details</h3>");
+    res.status(403).send("<h3>Incorrect Credentials</h3>");
   } else {
     req.session.user_id = foundUser.id;
     res.redirect("/urls");
-  // } else {
-  //   res.send("<h3>Incorrect password.</h3>");
   }
 });
 
-// Logout command - clear the username cookie
+// Logout command - Clear the user ID and session cookies
 app.post("/logout", (req, res) => {
   req.session = null;
   res.clearCookie("session");
