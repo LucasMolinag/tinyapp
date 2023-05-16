@@ -9,16 +9,6 @@ app.set("view engine", "ejs");
 const users = {
   userRandomID: {
     id: "userRandomID",
-    email: "user@example.com",
-    password: "purple-monkey-dinosaur",
-  },
-  user2RandomID: {
-    id: "user2RandomID",
-    email: "user2@example.com",
-    password: "dishwasher-funk",
-  },
-  user3RandomID: {
-    id: "user3RandomID",
     email: "puts@puts.com",
     password: "$2a$10$IRW/Lfeyqf1Rq9LXvEkGo.uK40wBk39Ic1Z3w4Gn/JrrtofEmd3t2",
   }
@@ -27,37 +17,37 @@ const users = {
 const urlDatabase = {
   "b2xVn2": {
     longURL: "http://www.lighthouselabs.ca",
-    userID: "user3RandomID"
+    userID: "userRandomID"
   },
   "9sm5xK": {
     longURL: "http://www.google.com",
-    userID: "user2RandomID"
+    userID: "userRandomID"
   }
 };
 
 // Check if a user already exists in the users database
-function sniffer(user) {
+const sniffer = function(user) {
   for (const eUser in users) {
     if (user.email === users[eUser].email) {
       return true;
     }
   }
   return false;
-}
+};
 
 // Match entered credentials agains existing user credentials
-function doorman(user) {
+const doorman = function(user) {
   for (const userId in users) {
     const existingUser = users[userId];
     if (user.email === existingUser.email && bcrypt.compareSync(user.password, existingUser.password)) {
-      return true;
+      return existingUser;
     }
   }
-  return false;
-}
+  return null;
+};
 
 // Searches for URLs owned by certain user
-function urlsForUser(user) {
+const urlsForUser = function(user) {
   let result = {};
   for (const URL in urlDatabase) {
     if (user.id === urlDatabase[URL].userID) {
@@ -65,10 +55,10 @@ function urlsForUser(user) {
     }
   }
   return result;
-}
+};
 
 // Generate random string of characters to be used as shortURL
-function generateRandomString() {
+const generateRandomString = function() {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let randomString = '';
 
@@ -78,7 +68,7 @@ function generateRandomString() {
   }
 
   return randomString;
-}
+};
 
 app.use(cookieSession({
   name: "session",
@@ -87,12 +77,9 @@ app.use(cookieSession({
 
 app.use(express.urlencoded({ extended: true }));
 
-app.get("/", (req, res) => {
-  res.send("Hello!");
-});
-
 // Render the urls_index view
 app.get("/urls", (req, res) => {
+  console.log("HERE", users);
   const user = users[req.session["user_id"]];
   if (user) {
     let result = urlsForUser(user);
@@ -107,7 +94,7 @@ app.get("/urls", (req, res) => {
 app.get("/register", (req, res) => {
   const user = users[req.session["user_id"]];
   const templateVars = { user };
-  if (typeof user === "object") {
+  if (user) {
     res.redirect(`/urls`);
   } else {
     res.render("create_account", templateVars);
@@ -118,15 +105,11 @@ app.get("/register", (req, res) => {
 app.get("/login", (req, res) => {
   const user = users[req.session["user_id"]];
   const templateVars = { user };
-  if (typeof user === "object") {
+  if (user) {
     res.redirect(`/urls`);
   } else {
     res.render("log_in", templateVars);
   }
-});
-
-app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
 // URL creation page - render a page to generate the randomly generated shortened URL on submission
@@ -134,8 +117,8 @@ app.get("/urls/new", (req, res) => {
   const user = users[req.session["user_id"]];
   const templateVars = { user };
 
-  if (typeof user !== "object") {
-    res.redirect(`/urls`);
+  if (!user) {
+    res.send("<h3>You need to be logged in to create now URLs!</h3>");
   } else {
     res.render("urls_new", templateVars);
   }
@@ -175,8 +158,6 @@ app.get("/u/:id", (req, res) => {
 
   if (longURL) {
     res.redirect(longURL);
-  } else if (!(longURL.startsWith("http://") || longURL.startsWith("https://"))) {
-    res.send("broken link");
   } else {
     res.status(404).send("<h3>Shortened URL does not exist</h3>");
   }
@@ -210,7 +191,7 @@ app.post("/urls", (req, res) => {
   const longURL = req.body.longURL;
   const shortURL = generateRandomString();
 
-  if (typeof user !== "object") {
+  if (!user) {
     res.send("<h3>You need to be logged in to create tiny URLs</h3>");
   } else {
     res.redirect(`/urls/${shortURL}`,);
@@ -233,14 +214,19 @@ app.post("/urls/:id/delete", (req, res) => {
   }
 });
 
-// Update command - swap longURL for the input and redirects to /urls
+// Update command - swap longURL for the input and redirect to /urls
 app.post("/urls/:id/update", (req, res) => {
   const user = users[req.session["user_id"]];
-  const id = req.params.id;
-  const newLongURL = req.body.longURL;
+
   if (!user) {
     res.send("<h3>You're not logged in!</h3>");
-  } else if (!urlDatabase[id]) {
+    return;
+  }
+
+  const id = req.params.id;
+  const newLongURL = req.body.longURL;
+  
+  if (!urlDatabase[id]) {
     res.send("<h3>This URL does not exist!</h3>");
   } else {
     urlDatabase[id].longURL = newLongURL;
@@ -256,14 +242,14 @@ app.post("/login", (req, res) => {
   };
 
   const foundUser = doorman(user);
-  
+  console.log("TEST2", foundUser);
   if (!foundUser) {
-    res.status(403).send("<h3>Incorred Credentials</h3>");
-  } else if (bcrypt.compareSync(user.password, foundUser.password)) {
+    res.status(403).send("<h3>Incorrect Details</h3>");
+  } else {
     req.session.user_id = foundUser.id;
     res.redirect("/urls");
-  } else {
-    res.send("<h3>Incorrect password.</h3>");
+  // } else {
+  //   res.send("<h3>Incorrect password.</h3>");
   }
 });
 
